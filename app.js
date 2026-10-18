@@ -153,7 +153,25 @@
       if (action === form.getAttribute("data-placeholder-action") || action.indexOf("example") !== -1) {
         e.preventDefault();
         status.textContent = "Signups open soon. The newsletter isn't connected yet.";
+        return;
       }
+      if (!window.fetch || !window.FormData) return; // plain POST fallback
+      e.preventDefault();
+      var btn = form.querySelector("button[type=submit]");
+      if (btn) btn.disabled = true;
+      status.textContent = "Signing you up...";
+      fetch(action, { method: "POST", body: new FormData(form), headers: { Accept: "application/json" } })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          if (res.ok && (!res.d || res.d.status !== "failed")) {
+            status.textContent = "Nearly done! Check your inbox and confirm your email to get the list.";
+            form.reset();
+          } else {
+            status.textContent = "Something went wrong. Please check your email address and try again.";
+          }
+        })
+        .catch(function () { form.submit(); })
+        .then(function () { if (btn) btn.disabled = false; });
     });
   }
 
